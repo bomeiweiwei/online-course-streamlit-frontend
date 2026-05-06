@@ -1,5 +1,7 @@
 import streamlit as st
 
+from utils.formatters import format_price, format_rating, format_students
+
 hardcode_textbook_data = {
     # --- 國文 (Chinese) ---
     "cht_h": "翰林版國文：融合古典文學與現代美學，強調跨文本的敘事分析。優點為選文精煉，能有效提升學生對修辭意境的感悟力。",
@@ -17,32 +19,36 @@ hardcode_textbook_data = {
     "math_k": "康軒版數學：以視覺化建模輔助教學，將抽象概念具象化處理。優點為重點標註明確，能幫助學生快速抓取章節的核心運算邏輯。"
 }
 
-def render_course_card(course: dict):
+def render_course_card(course: dict, rank: int):
     with st.container(border=True):
+        title_col, score_col = st.columns([4, 1])
 
-        st.subheader(course["course_name"])
+        with title_col:
+            st.subheader(f"#{rank} {course.get('course_name', '未命名課程')}")
 
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
+        with score_col:
             st.metric(
-                "價格",
-                f"NT$ {course['price']:,}"
+                "推薦分數",
+                f"{course.get('recommend_score', 0):.1f}"
             )
 
-        with col2:
-            st.metric(
-                "評價",
-                f"{course['rating']} ⭐"
-            )
+        info_col1, info_col2, info_col3 = st.columns(3)
 
-        with col3:
-            st.metric(
-                "報名人數",
-                f"{course['students']:,}"
-            )
+        with info_col1:
+            st.metric("價格", format_price(course.get("price")))
 
-        # st.write("7777777777777777")
+        with info_col2:
+            st.metric("評價", format_rating(course.get("rating")))
+
+        with info_col3:
+            st.metric("報名人數", format_students(course.get("students")))
+
+        # description = course.get("description")
+
+        # if description:
+        #     st.write(description)
+
+        # ===========================================
         if course["subject_name"] == "國文" and course["version_name"] == "翰林":
             st.write(hardcode_textbook_data["cht_h"])
         elif course["subject_name"] == "國文" and course["version_name"] == "南一":
@@ -63,3 +69,11 @@ def render_course_card(course: dict):
             st.write(hardcode_textbook_data["math_k"])
         else:
             st.write("無課程資訊")
+         # ===========================================
+         
+        reasons = course.get("recommend_reasons", [])
+
+        if reasons:
+            st.markdown("**推薦原因**")
+            for reason in reasons:
+                st.markdown(f"- {reason}")

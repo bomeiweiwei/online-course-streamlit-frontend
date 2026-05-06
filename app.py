@@ -6,6 +6,7 @@ from components.course_card import render_course_card
 
 from api.course_api import filter_courses
 
+from services.recommendation_service import get_ranked_courses
 
 st.set_page_config(
     page_title="線上課程智能推薦顧問",
@@ -24,7 +25,7 @@ try:
     with st.expander("目前選擇條件"):
         st.json(filters)
 
-     # ===== 查詢課程 =====
+    # ===== 查詢課程 =====
     courses = filter_courses(
         school_id=filters["school_id"],
         grade_id=filters["grade_id"],
@@ -34,16 +35,26 @@ try:
     #     st.json(courses["data"][:1])
 
     # ===== 結果 =====
-    st.divider()
+    # st.divider()
 
-    st.subheader(f"推薦課程 ({len(courses["data"])} 筆)")
+    # st.subheader(f"推薦課程 ({len(courses["data"])} 筆)")
 
-    if not courses:
+    # if not courses:
+    #     st.warning("目前查無符合條件課程")
+
+    # else:
+    #     for course in courses["data"]:
+    #         render_course_card(course)
+    ranked_courses = get_ranked_courses(courses["data"], filters)
+
+    st.subheader(f"推薦課程 Top {len(ranked_courses)}")
+
+    if not ranked_courses:
         st.warning("目前查無符合條件課程")
 
     else:
-        for course in courses["data"]:
-            render_course_card(course)
+        for index, course in enumerate(ranked_courses, start=1):
+            render_course_card(course, rank=index)
 
 except requests.exceptions.ConnectionError:
     st.error("無法連線到後端 API，請確認 FastAPI 是否已啟動。")
