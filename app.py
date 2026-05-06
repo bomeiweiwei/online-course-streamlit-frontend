@@ -50,7 +50,7 @@ try:
 
     else:
         for index, course in enumerate(ranked_courses, start=1):
-            render_course_card(course, rank=index)
+            render_course_card(course, rank=index, filters=filters)
 
 except requests.exceptions.ConnectionError:
     st.error("無法連線到後端 API，請確認 FastAPI 是否已啟動。")

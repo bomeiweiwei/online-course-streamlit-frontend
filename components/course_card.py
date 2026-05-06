@@ -2,6 +2,8 @@ import streamlit as st
 
 from utils.formatters import format_price, format_rating, format_students
 
+from api.ai_api import get_course_ai_recommendation
+
 hardcode_textbook_data = {
     # --- 國文 (Chinese) ---
     "cht_h": "翰林版國文：融合古典文學與現代美學，強調跨文本的敘事分析。優點為選文精煉，能有效提升學生對修辭意境的感悟力。",
@@ -42,7 +44,7 @@ def get_textbook_description(course: dict) -> str:
 
     return hardcode_textbook_data[key]
 
-def render_course_card(course: dict, rank: int):
+def render_course_card(course: dict, rank: int, filters: dict):
     course_name = course.get("course_name", "未命名課程")
     score = course.get("recommend_score", 0)
     reasons = course.get("recommend_reasons", [])
@@ -134,3 +136,44 @@ def render_course_card(course: dict, rank: int):
             """,
             unsafe_allow_html=True
         )
+
+        st.divider()
+
+        ai_key = f"ai_reason_{course.get('course_name')}_{rank}"
+
+        if st.button("產生 AI 推薦原因", key=f"btn_{ai_key}"):
+            with st.spinner("AI 正在分析課程適合度..."):
+                try:
+                    result = get_course_ai_recommendation(
+                        filters=filters,
+                        course=course
+                    )
+
+                    st.session_state[ai_key] = result
+
+                except Exception as e:
+                    st.session_state[ai_key] = {
+                        "success": False,
+                        "message": f"AI 分析失敗：{e}"
+                    }
+
+        if ai_key in st.session_state:
+            result = st.session_state[ai_key]
+
+            ai_text = result.get("answer")
+
+            st.markdown(
+                f"""
+                <div style="
+                    margin-top: 12px;
+                    padding: 14px 16px;
+                    border-radius: 12px;
+                    background-color: rgba(16, 185, 129, 0.12);
+                    border-left: 4px solid #34d399;
+                    line-height: 1.8;
+                ">
+                    🤖 <b>AI 推薦說明：</b>{ai_text}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
