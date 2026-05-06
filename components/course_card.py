@@ -19,61 +19,118 @@ hardcode_textbook_data = {
     "math_k": "康軒版數學：以視覺化建模輔助教學，將抽象概念具象化處理。優點為重點標註明確，能幫助學生快速抓取章節的核心運算邏輯。"
 }
 
+def get_textbook_description(course: dict) -> str:
+    subject_name = course.get("subject_name")
+    version_name = course.get("version_name")
+
+    key_map = {
+        ("國文", "翰林"): "cht_h",
+        ("國文", "南一"): "cht_n",
+        ("國文", "康軒"): "cht_k",
+        ("英文", "翰林"): "eng_h",
+        ("英文", "南一"): "eng_n",
+        ("英文", "康軒"): "eng_k",
+        ("數學", "翰林"): "math_h",
+        ("數學", "南一"): "math_n",
+        ("數學", "康軒"): "math_k",
+    }
+
+    key = key_map.get((subject_name, version_name))
+
+    if not key:
+        return "目前尚無課程資訊。"
+
+    return hardcode_textbook_data[key]
+
 def render_course_card(course: dict, rank: int):
+    course_name = course.get("course_name", "未命名課程")
+    score = course.get("recommend_score", 0)
+    reasons = course.get("recommend_reasons", [])
+
+    badge = "🏆" if rank <= 3 else "📘"
+    reasons_text = "、".join(reasons) if reasons else "符合目前篩選條件"
+
+    description = course.get("description") or get_textbook_description(course)
+
     with st.container(border=True):
-        title_col, score_col = st.columns([4, 1])
+        # ===== 標題列 =====
+        title_col, score_col = st.columns([5, 1])
 
         with title_col:
-            st.subheader(f"#{rank} {course.get('course_name', '未命名課程')}")
-
-        with score_col:
-            st.metric(
-                "推薦分數",
-                f"{course.get('recommend_score', 0):.1f}"
+            st.markdown(
+                f"""
+                <div style="font-size: 1.45rem; font-weight: 700; line-height: 1.4;">
+                    {badge} Top {rank}｜{course_name}
+                </div>
+                <div style="font-size: 0.9rem; color: #9ca3af; margin-top: 4px;">
+                    {course.get("school_name", "")}・{course.get("grade_name", "")}・
+                    {course.get("subject_name", "")}・{course.get("version_name", "")}・
+                    {course.get("degree_name", "")}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-        info_col1, info_col2, info_col3 = st.columns(3)
+        with score_col:
+            st.markdown(
+                f"""
+                <div style="text-align: right;">
+                    <div style="font-size: 0.85rem; color: #9ca3af;">推薦分數</div>
+                    <div style="font-size: 2rem; font-weight: 700;">{score:.1f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        with info_col1:
+        st.write("")
+
+        # ===== 指標列 =====
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
             st.metric("價格", format_price(course.get("price")))
 
-        with info_col2:
+        with col2:
             st.metric("評價", format_rating(course.get("rating")))
 
-        with info_col3:
+        with col3:
             st.metric("報名人數", format_students(course.get("students")))
 
-        # description = course.get("description")
+        # ===== 課程資訊 =====
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 12px;
+                padding: 16px;
+                border-radius: 12px;
+                background-color: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            ">
+                <div style="font-size: 0.9rem; color: #9ca3af; margin-bottom: 6px;">
+                    課程資訊
+                </div>
+                <div style="font-size: 1.05rem; line-height: 1.8;">
+                    {description}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        # if description:
-        #     st.write(description)
-
-        # ===========================================
-        if course["subject_name"] == "國文" and course["version_name"] == "翰林":
-            st.write(hardcode_textbook_data["cht_h"])
-        elif course["subject_name"] == "國文" and course["version_name"] == "南一":
-            st.write(hardcode_textbook_data["cht_n"])
-        elif course["subject_name"] == "國文" and course["version_name"] == "康軒":
-            st.write(hardcode_textbook_data["cht_k"])
-        elif course["subject_name"] == "英文" and course["version_name"] == "翰林":
-            st.write(hardcode_textbook_data["eng_h"])
-        elif course["subject_name"] == "英文" and course["version_name"] == "南一":
-            st.write(hardcode_textbook_data["eng_n"])
-        elif course["subject_name"] == "英文" and course["version_name"] == "康軒":
-            st.write(hardcode_textbook_data["eng_k"])
-        elif course["subject_name"] == "數學" and course["version_name"] == "翰林":
-            st.write(hardcode_textbook_data["math_h"])
-        elif course["subject_name"] == "數學" and course["version_name"] == "南一":
-            st.write(hardcode_textbook_data["math_n"])
-        elif course["subject_name"] == "數學" and course["version_name"] == "康軒":
-            st.write(hardcode_textbook_data["math_k"])
-        else:
-            st.write("無課程資訊")
-         # ===========================================
-         
-        reasons = course.get("recommend_reasons", [])
-
-        if reasons:
-            st.markdown("**推薦原因**")
-            for reason in reasons:
-                st.markdown(f"- {reason}")
+        # ===== 推薦原因 =====
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 14px;
+                padding: 12px 14px;
+                border-radius: 10px;
+                background-color: rgba(37, 99, 235, 0.18);
+                border-left: 4px solid #60a5fa;
+                font-size: 0.95rem;
+                line-height: 1.6;
+            ">
+                💡 <b>推薦原因：</b>{reasons_text}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
