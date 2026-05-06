@@ -7,6 +7,7 @@ from components.course_card import render_course_card
 from api.course_api import filter_courses
 
 from services.recommendation_service import get_ranked_courses
+from services.filter_service import apply_frontend_filters
 
 st.set_page_config(
     page_title="線上課程智能推薦顧問",
@@ -31,21 +32,16 @@ try:
         grade_id=filters["grade_id"],
         subject_id=filters["subject_id"]
     )
+
+    fcourses = apply_frontend_filters(
+        courses["data"],
+        filters
+    )
     # with st.expander("查詢課程結果"):
     #     st.json(courses["data"][:1])
 
     # ===== 結果 =====
-    # st.divider()
-
-    # st.subheader(f"推薦課程 ({len(courses["data"])} 筆)")
-
-    # if not courses:
-    #     st.warning("目前查無符合條件課程")
-
-    # else:
-    #     for course in courses["data"]:
-    #         render_course_card(course)
-    ranked_courses = get_ranked_courses(courses["data"], filters)
+    ranked_courses = get_ranked_courses(fcourses, filters)
 
     st.subheader(f"推薦課程 Top {len(ranked_courses)}")
 
