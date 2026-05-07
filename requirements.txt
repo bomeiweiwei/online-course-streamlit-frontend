@@ -1,4 +1,3 @@
-streamlit
-requests
-python-dotenv
-pandas
+python-dotenv==1.2.2
+Requests==2.33.1
+streamlit==1.57.0
