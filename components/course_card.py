@@ -50,7 +50,7 @@ def render_course_card(course: dict, rank: int, filters: dict):
     reasons = course.get("recommend_reasons", [])
 
     badge = "🏆" if rank <= 3 else "📘"
-    reasons_text = "、".join(reasons) if reasons else "符合目前篩選條件"
+    reasons_text = reasons if reasons else "符合目前篩選條件"
 
     description = course.get("description") or get_textbook_description(course)
 
