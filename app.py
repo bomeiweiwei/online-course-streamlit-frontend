@@ -23,9 +23,9 @@ try:
     if not filters:
         st.stop()
 
-     # ===== 顯示目前條件 =====
-    with st.expander("目前選擇條件"):
-        st.json(filters)
+    # ===== 顯示目前條件 =====
+    # with st.expander("目前選擇條件"):
+    #     st.json(filters)
 
     # ===== 查詢課程 =====
     courses = get_course_recommends(

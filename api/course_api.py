@@ -26,3 +26,22 @@ def filter_courses(
     response.raise_for_status()
 
     return response.json()
+
+def get_course_content(subject_name, version_name):
+    url = f"{API_BASE_URL}/api/courses/content"
+
+    params = {
+        "subject_name": subject_name,
+        "version_name": version_name
+    }
+
+    response = requests.get(
+        url,
+        params=params,
+        headers={"accept": "application/json"},
+        timeout=10
+    )
+
+    response.raise_for_status()
+
+    return response.json()
