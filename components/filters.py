@@ -11,11 +11,48 @@ from api.option_api import (
 )
 
 
-def render_sidebar_filters():
-    EMPTY_OPTION = {"id": None, "name": "請選擇"}
+EMPTY_OPTION = {"id": None, "name": "請選擇"}
 
-    # 左側 sidebar =====
+
+# =========================================
+# callback
+# =========================================
+def reset_after_school_change():
+    """
+    學制改變時：
+    清空年級、科目、版本
+    """
+    st.session_state.pop("grade", None)
+    st.session_state.pop("subject", None)
+    st.session_state.pop("version", None)
+
+
+def reset_after_grade_change():
+    """
+    年級改變時：
+    清空科目、版本
+    """
+    st.session_state.pop("subject", None)
+    st.session_state.pop("version", None)
+
+
+def reset_after_subject_change():
+    """
+    科目改變時：
+    清空版本
+    """
+    st.session_state.pop("version", None)
+
+
+# =========================================
+# sidebar filters
+# =========================================
+def render_sidebar_filters():
+
     st.sidebar.header("篩選條件")
+
+    # =========================================
+    # 學制
     # =========================================
     schools = get_schools()
 
@@ -24,11 +61,17 @@ def render_sidebar_filters():
         return None
 
     selected_school = st.sidebar.selectbox(
-        "學制", options=schools, format_func=lambda item: item["name"], key="school"
+        "學制",
+        options=schools,
+        format_func=lambda item: item["name"],
+        key="school",
+        on_change=reset_after_school_change,
     )
 
     school_id = selected_school["id"]
+
     # =========================================
+    # 年級
     # =========================================
     grades = get_grades(school_id)
 
@@ -40,10 +83,14 @@ def render_sidebar_filters():
         "年級",
         options=grades,
         format_func=lambda item: item["name"],
-        key=f"grade_{selected_school['id']}",
+        key="grade",
+        on_change=reset_after_grade_change,
     )
 
     grade_id = selected_grade["id"]
+
+    # =========================================
+    # 科目
     # =========================================
     subjects = get_subjects(grade_id)
 
@@ -55,10 +102,14 @@ def render_sidebar_filters():
         "科目",
         options=subjects,
         format_func=lambda item: item["name"],
-        key=f"subject_{selected_school['id']}_{selected_grade['id']}",
+        key="subject",
+        on_change=reset_after_subject_change,
     )
 
     subject_id = selected_subject["id"]
+
+    # =========================================
+    # 版本
     # =========================================
     versions = get_versions(subject_id)
 
@@ -70,43 +121,73 @@ def render_sidebar_filters():
         "版本",
         options=[EMPTY_OPTION] + versions,
         format_func=lambda item: item["name"],
-        key=f"version_{selected_school['id']}_{selected_grade['id']}_{selected_subject['id']}",
+        key="version",
     )
 
-    version_id = selected_version["id"]
+    # =========================================
+    # 程度
     # =========================================
     degrees = get_degrees()
+
     selected_degree = st.sidebar.selectbox(
         "程度",
         options=[EMPTY_OPTION] + degrees,
         format_func=lambda item: item["name"],
         key="degree",
     )
+
+    # =========================================
+    # 目標
     # =========================================
     goals = get_goals()
+
     selected_goal = st.sidebar.selectbox(
         "目標",
-        [EMPTY_OPTION] + goals,
+        options=[EMPTY_OPTION] + goals,
         format_func=lambda item: item["name"],
         key="goal",
     )
+
+    # =========================================
+    # 預算
     # =========================================
     budget = st.sidebar.slider(
-        "預算", min_value=0, max_value=10000, value=3000, step=500, key="budget"
+        "預算",
+        min_value=0,
+        max_value=10000,
+        value=3000,
+        step=500,
+        key="budget",
     )
+
+    # =========================================
+    # 顯示推薦數量
     # =========================================
     limit = st.sidebar.slider(
-        "顯示推薦數量", min_value=3, max_value=10, value=3, step=1
+        "顯示推薦數量",
+        min_value=3,
+        max_value=10,
+        value=3,
+        step=1,
+        key="limit",
     )
+
+    # =========================================
+    # 偏好
     # =========================================
     preferences = get_preferences()
+
     selected_preferences = st.sidebar.multiselect(
         "偏好",
         options=preferences,
         format_func=lambda item: item["name"],
         key="preferences",
     )
+
     # =========================================
+    # debug
+    # =========================================
+    # st.write(st.session_state)
 
     return {
         "school_id": selected_school["id"],
@@ -123,5 +204,5 @@ def render_sidebar_filters():
         "goal_name": selected_goal["name"],
         "budget": budget,
         "limit": limit,
-        "preferences": [selected_pref["id"] for selected_pref in selected_preferences],
+        "preferences": [item["id"] for item in selected_preferences],
     }
