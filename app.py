@@ -5,7 +5,7 @@ from components.filters import render_sidebar_filters
 from components.course_card import render_course_card
 
 from api.course_api import filter_courses
-from api.recommend_api import get_course_recommends
+from api.recommend_api import get_course_recommends, download_recommend_csv
 
 from services.recommendation_service import get_ranked_courses
 from services.filter_service import apply_frontend_filters
@@ -43,6 +43,23 @@ try:
         st.warning("目前查無符合條件課程")
 
     else:
+        csv_data = download_recommend_csv(filters)
+
+        if csv_data:
+            left_spacer, button_col = st.columns([10, 2])
+
+            with left_spacer:
+                st.empty()
+
+            with button_col:
+                st.download_button(
+                    label="⬇️ 下載推薦課程",
+                    data=csv_data,
+                    file_name="recommend_courses.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+
         for index, course in enumerate(courses, start=1):
             render_course_card(course, rank=index, filters=filters)
 
