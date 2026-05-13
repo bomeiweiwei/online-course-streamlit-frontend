@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from streamlit_mic_recorder import mic_recorder
 from api.voice import voice_to_text
+import re
 
 from api.option_api import (
     get_schools,
@@ -75,8 +76,13 @@ st.markdown("""
 def render_voice_button(schools): 
     # 使用 expander 收納語音功能，並預設展開
     with st.sidebar.expander("🎙️ 語音快速填寫", expanded=True):
-        st.markdown('<p style="color: gray; font-size: 0.8rem;">您可以說：「我想看高中二年級的國文」</p>', 
-                    unsafe_allow_html=True) 
+        st.markdown('''
+            <p style="color: gray; font-size: 0.8rem;">
+            您可以說：<br>
+            • 「我想看高中二年級的國文」<br>
+            • 「<b>顯示推薦數量改為 5 個</b>」
+            </p>
+        ''', unsafe_allow_html=True)
         
         # 只保留確定的參數
         audio = mic_recorder(
@@ -139,6 +145,22 @@ def auto_select_logic(text, schools):
                             reset_after_subject_change()
                             break
             break
+    # 匹配顯示推薦數量
+    if any(keyword in text for keyword in ["數量", "推薦", "幾個", "顯示"]):
+        numbers = re.findall(r'\d+', text)
+        if numbers:
+            # 取第一個找到的數字，並轉為整數
+            target_limit = int(numbers[0])
+            
+            # 檢查是否在 slider 的範圍內 (3-10)
+            if 3 <= target_limit <= 10:
+                st.session_state["limit"] = target_limit
+                st.toast(f"🔢 已將推薦數量設為：{target_limit}", icon="📊")
+            else:
+                st.sidebar.warning(f"數量 {target_limit} 超出範圍 (3-10)")
+
+if "limit" not in st.session_state:
+    st.session_state["limit"] = 3
 
 # =========================================
 # sidebar filters
@@ -266,7 +288,7 @@ def render_sidebar_filters():
         "顯示推薦數量",
         min_value=3,
         max_value=10,
-        value=3,
+        # value=3,
         step=1,
         key="limit",
     )
