@@ -1,59 +1,59 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+此檔案提供 Claude Code (claude.ai/code) 在此專案中的操作指引。
 
-## Project Overview
+## 專案概述
 
-A Streamlit frontend for an AI-powered online course recommendation system (線上課程智能推薦顧問). It communicates with a FastAPI backend to display filtered course recommendations and AI analysis.
+這是一個以 Streamlit 建構的前端應用，用於 AI 驅動的線上課程智能推薦顧問系統。透過呼叫 FastAPI 後端，顯示篩選後的課程推薦結果與 AI 分析。
 
-## Development Commands
+## 開發指令
 
 ```bash
-# Install dependencies
+# 安裝相依套件
 pip install -r requirements.txt
 
-# Run the app (requires FastAPI backend at API_BASE_URL)
+# 啟動應用程式（需先啟動 FastAPI 後端，並設定 API_BASE_URL）
 streamlit run app.py
 
-# Docker build & run
+# Docker 建置與執行
 docker build -t course-web:latest .
 docker run --rm -p 8501:8080 -e PORT=8080 -e API_BASE_URL=http://host.docker.internal:8000 course-web
 ```
 
-**Prerequisite:** The FastAPI backend must be running before launching Streamlit. Copy `.env.example` to `.env` and set `API_BASE_URL` accordingly.
+**前置條件：** 啟動 Streamlit 前，必須先執行 FastAPI 後端。請將 `.env.example` 複製為 `.env`，並設定 `API_BASE_URL`。
 
-## Architecture
+## 架構說明
 
-**Data flow:** User fills sidebar filters → `api/recommend_api.py` POSTs to backend → `services/recommendation_service.py` scores/ranks results → `components/course_card.py` renders cards → clicking a card fetches course content and AI analysis on demand.
+**資料流：** 使用者填寫側邊欄篩選條件 → `api/recommend_api.py` 以 POST 呼叫後端 → `services/recommendation_service.py` 計分排序 → `components/course_card.py` 渲染課程卡片 → 點擊卡片後，依需求取得課程內容與 AI 分析。
 
-### Module Roles
+### 模組職責
 
-| Layer | Path | Responsibility |
+| 層級 | 路徑 | 職責 |
 |---|---|---|
-| Entry point | `app.py` | Page layout, wires components together |
-| API clients | `api/` | HTTP calls to FastAPI backend (`recommend_api`, `course_api`, `option_api`, `ai_api`, `voice`) |
-| Components | `components/` | `filters.py` (sidebar with cascading dropdowns + voice input), `course_card.py` (card + detail dialog) |
-| Services | `services/` | `recommendation_service.py` (scoring algorithm), `filter_service.py` (client-side filtering) |
-| Config | `config/settings.py` | Loads `API_BASE_URL` from `.env` |
-| Enums | `enums/sys_preference.py` | User preference types |
-| Utils | `utils/formatters.py` | Price, rating, student count formatting |
+| 入口點 | `app.py` | 頁面佈局，串接各元件 |
+| API 客戶端 | `api/` | 呼叫 FastAPI 後端的 HTTP 請求（`recommend_api`、`course_api`、`option_api`、`ai_api`、`voice`）|
+| 元件 | `components/` | `filters.py`（含級聯下拉選單與語音輸入的側邊欄）、`course_card.py`（卡片與詳細資訊彈窗）|
+| 服務 | `services/` | `recommendation_service.py`（計分演算法）、`filter_service.py`（客戶端篩選邏輯）|
+| 設定 | `config/settings.py` | 從 `.env` 載入 `API_BASE_URL` |
+| 列舉 | `enums/sys_preference.py` | 使用者偏好類型定義 |
+| 工具 | `utils/formatters.py` | 價格、評分、學生人數格式化 |
 
-### Key Implementation Details
+### 關鍵實作細節
 
-**Cascading dropdowns:** School → Grade → Subject → Version. Each selection change calls a reset callback (`reset_after_school_change()`, etc.) that clears dependent `st.session_state` keys before refetching options.
+**級聯下拉選單：** 學校 → 年級 → 科目 → 版本。每次選項變更時，會呼叫對應的重置 callback（`reset_after_school_change()` 等），清除下游 `st.session_state` 的鍵值後重新取得選項。
 
-**Scoring algorithm** (`recommendation_service.py`):
-- Base: `rating × 10`
-- Student count bonus: +20 (≥1000), +15 (≥500), +10 (≥100)
-- Budget match: +20 (exact), +10 (within 20%)
-- Preference match: +5 per matched preference
+**計分演算法**（`recommendation_service.py`）：
+- 基礎分：`評分 × 10`
+- 學生人數加分：+20（≥1000）、+15（≥500）、+10（≥100）
+- 預算符合：+20（完全符合）、+10（在 20% 範圍內）
+- 偏好符合：每項符合 +5
 
-**Voice input:** Records audio via `streamlit-mic-recorder`, sends to `/api/voice/voice_to_text`, then regex-parses the transcript to auto-fill school name, grade, subject, and recommendation count (clamped 3–10).
+**語音輸入：** 透過 `streamlit-mic-recorder` 錄製音訊，送至 `/api/voice/voice_to_text`，再以正規表達式解析逐字稿，自動填入學校名稱、年級、科目與推薦數量（限制在 3–10 之間）。
 
-**AI analysis:** Fetched lazily when the user opens a course detail dialog. Results cached in session state under key `ai_reason_{course_name}_{rank}`.
+**AI 分析：** 使用者開啟課程詳細彈窗時才進行延遲載入，結果以 `ai_reason_{course_name}_{rank}` 為鍵值快取於 session state。
 
-**Session state:** Heavily used for filter values, voice audio blobs, dropdown option lists, and AI result caching. All state keys are prefixed by their domain (e.g., `selected_school_id`, `grade_options`).
+**Session State：** 大量用於儲存篩選條件、語音音訊 blob、下拉選單選項清單及 AI 結果快取。所有鍵值皆以所屬領域為前綴命名（例如 `selected_school_id`、`grade_options`）。
 
-## Deployment
+## 部署
 
-GCP Cloud Run target. The Dockerfile exposes port 8080 (configurable via `PORT` env var) and runs Streamlit in headless mode. The current active feature branch is `feature/cloud`; `develop` is the integration branch.
+目標平台為 GCP Cloud Run。Dockerfile 預設公開 8080 埠（可透過 `PORT` 環境變數調整），並以 headless 模式執行 Streamlit。目前的功能開發分支為 `feature/cloud`，整合分支為 `develop`。
